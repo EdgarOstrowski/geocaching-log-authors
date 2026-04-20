@@ -87,7 +87,6 @@ if __name__ == "__main__":
     parser = build_parser()
     args = parser.parse_args()
 
-
     driver = webdriver.Firefox()
 
     load_dotenv()
@@ -100,6 +99,8 @@ if __name__ == "__main__":
 
     # "Write note", "will attend",
     usernames = get_list_of_usernames_from_cache_logs(driver, log_type="will attend")
+    
+    username = list(set(username))  # Remove duplicates
     usernames.sort()
 
     save_usernames_to_file(usernames, "GCAT0RT.txt")
