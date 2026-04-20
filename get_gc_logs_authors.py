@@ -1,11 +1,30 @@
 import argparse
 import os
 import time
+import getpass
 
 from dotenv import load_dotenv
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
+
+
+def get_username_and_password():
+
+    load_dotenv()
+
+    username = os.getenv('GC_USERNAME')
+    password = os.getenv('GC_PASSWORD')
+
+    if username is None:
+        print("Enter your geocaching.com username: ")
+        username = input()
+
+    if password is None:
+        password = getpass.getpass("Enter your geocaching.com password: ")
+
+
+    return username, password
 
 
 def geocaching_com_login(driver, username, password):
@@ -89,10 +108,7 @@ if __name__ == "__main__":
 
     driver = webdriver.Firefox()
 
-    load_dotenv()
-
-    username = os.getenv('GC_USERNAME')
-    password = os.getenv('GC_PASSWORD')
+    username, password = get_username_and_password()
 
     geocaching_com_login(driver, username, password)
     open_cache_page(driver, "GCAT0RT")
