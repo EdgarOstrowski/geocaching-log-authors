@@ -139,7 +139,7 @@ if __name__ == "__main__":
     usernames = get_list_of_usernames_from_cache_logs(driver, log_type="will attend")
     
     usernames = list(set(usernames))  # Remove duplicates
-    usernames.sort()
+    usernames.sort(key=str.casefold)
 
     save_usernames_to_file(usernames, "GCAT0RT.txt")
 
