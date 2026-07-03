@@ -29,7 +29,8 @@ def get_username_and_password():
 
 def geocaching_com_login(driver, username, password):
     driver.get("https://www.geocaching.com/account/signin")
-    time.sleep(2)
+
+    time.sleep(5)
 
     username_field = driver.find_element(By.ID, "UsernameOrEmail")
     username_field.clear()
@@ -39,30 +40,52 @@ def geocaching_com_login(driver, username, password):
     password_field.clear()
     password_field.send_keys(password)
 
+    time.sleep(5)
+
     password_field.send_keys(Keys.RETURN)
 
-    time.sleep(2)
+    time.sleep(20)
 
 
 def open_cache_page(driver, gccode):
     driver.get(f"https://www.geocaching.com/geocache/{gccode}")
     time.sleep(2)
 
-    prev_count = 0
+    prev_count = -1
+    prev_scroll_top = -1
+    stable_rounds = 0
 
     while True:
         elements = driver.find_elements(By.CSS_SELECTOR, ".log-row")
         count = len(elements)
 
-        # If no new items appeared, stop scrolling
-        if count == prev_count:
+        print(elements)
+
+        # `document.body` is not always the active scrolling element.
+        # Use the page scrolling element so Firefox/Chromium behave consistently.
+        driver.execute_script(
+            """
+            const scroller = document.scrollingElement || document.documentElement;
+            scroller.scrollTo(0, scroller.scrollHeight);
+            """
+        )
+        time.sleep(2)
+
+        scroll_top = driver.execute_script(
+            "return (document.scrollingElement || document.documentElement).scrollTop;"
+        )
+
+        # Stop when neither log count nor scroll position changes for a few rounds.
+        if count == prev_count and scroll_top == prev_scroll_top:
+            stable_rounds += 1
+        else:
+            stable_rounds = 0
+
+        if stable_rounds >= 2:
             break
 
         prev_count = count
-
-        # Scroll to bottom
-        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-        time.sleep(2)
+        prev_scroll_top = scroll_top
 
 
 def get_list_of_usernames_from_cache_logs(driver, log_type=None):
@@ -79,11 +102,10 @@ def get_list_of_usernames_from_cache_logs(driver, log_type=None):
         name = left.find_element(By.CSS_SELECTOR, ".h5").text
         log_type = right.find_element(By.CSS_SELECTOR, ".h4").text
 
-        if log_type is None:
-            usernames.append(name)
-        elif log_type.lower() == log_type.lower():
-            usernames.append(name)
 
+        usernames.append(name)
+        
+        
     return usernames
 
 
@@ -116,7 +138,7 @@ if __name__ == "__main__":
     # "Write note", "will attend",
     usernames = get_list_of_usernames_from_cache_logs(driver, log_type="will attend")
     
-    username = list(set(username))  # Remove duplicates
+    usernames = list(set(usernames))  # Remove duplicates
     usernames.sort()
 
     save_usernames_to_file(usernames, "GCAT0RT.txt")
