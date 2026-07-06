@@ -13,3 +13,6 @@ This tool aims to solve this problem with some Python and Selenium automation.
 # Setup 
 
 1. clone repo
+
+# Changelog/History
+2026-07-06 - Script works on today's version of the geocaching.com site.
