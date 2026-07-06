@@ -7,6 +7,9 @@ from dotenv import load_dotenv
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import TimeoutException
 
 
 def get_username_and_password():
@@ -30,7 +33,49 @@ def get_username_and_password():
 def geocaching_com_login(driver, username, password):
     driver.get("https://www.geocaching.com/account/signin")
 
-    time.sleep(5)
+    # Handle Cookiebot consent before interacting with login fields.
+    wait = WebDriverWait(driver, 10)
+
+    def click_necessary_only_button() -> bool:
+        button_locators = [
+            (By.ID, "CybotCookiebotDialogBodyButtonDecline"),
+            (By.ID, "CybotCookiebotDialogBodyButtonNecessary"),
+            (
+                By.XPATH,
+                "//button[contains(normalize-space(.), 'Necessary cookies only')]",
+            ),
+        ]
+
+        for locator in button_locators:
+            try:
+                wait.until(EC.element_to_be_clickable(locator)).click()
+                return True
+            except TimeoutException:
+                continue
+
+        return False
+
+    accepted = click_necessary_only_button()
+
+    # Cookiebot can also be rendered inside an iframe.
+    if not accepted:
+        iframe_candidates = driver.find_elements(
+            By.CSS_SELECTOR,
+            "iframe#CybotCookiebotDialog, iframe[id*='CybotCookiebotDialog'], iframe[src*='cookiebot']",
+        )
+
+        for iframe in iframe_candidates:
+            try:
+                driver.switch_to.frame(iframe)
+                if click_necessary_only_button():
+                    accepted = True
+                    break
+            except TimeoutException:
+                pass
+            finally:
+                driver.switch_to.default_content()
+
+    time.sleep(2)
 
     username_field = driver.find_element(By.ID, "UsernameOrEmail")
     username_field.clear()
@@ -44,8 +89,6 @@ def geocaching_com_login(driver, username, password):
 
     password_field.send_keys(Keys.RETURN)
 
-    time.sleep(20)
-
 
 def open_cache_page(driver, gccode):
     driver.get(f"https://www.geocaching.com/geocache/{gccode}")
@@ -58,8 +101,6 @@ def open_cache_page(driver, gccode):
     while True:
         elements = driver.find_elements(By.CSS_SELECTOR, ".log-row")
         count = len(elements)
-
-        print(elements)
 
         # `document.body` is not always the active scrolling element.
         # Use the page scrolling element so Firefox/Chromium behave consistently.
