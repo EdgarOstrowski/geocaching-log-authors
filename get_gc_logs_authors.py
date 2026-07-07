@@ -14,9 +14,16 @@ from selenium.common.exceptions import TimeoutException
 
 AVAILABLE_LOG_TYPES = [
     "Will attend",
-    "Write note",
     "Attended",
     "Announcement",
+    "Found it",
+    "Didn't find it",
+    "Update coordinates",
+    "Owner maintenance"
+    "Enable listing",
+    "Temporarily disable listing",
+    "Write note",
+    "Post reviewer note",
 ]
 
 
