@@ -1,18 +1,103 @@
-# geocaching-log-authors
+# Geocaching Log Author Exporter
 
-*Extracts geocaching usernames of all the users that have logged a geocache.*
+> [!NOTE]
+> This version was verified on geocaching.com on 2026-07-28.
 
-When organizing a larg geocaching event it is sometimes useful to have a list
-of geocaching usernames that have earlier submitted "Will Attend" logs. The 
-official geocaching.com website doesn't have any builtin feature that would
-perform such a taks. Currently the only way to get this done is by manually 
-copy and pasting the information from the cache page.
+A Python script that logs in to geocaching.com, opens a cache page, and exports usernames from cache logs to a text file based on the selected log type.
 
-This tool aims to solve this problem with some Python and Selenium automation.
+The script uses Selenium with Firefox, supports filtering by log type, and can optionally wait for manual reCAPTCHA completion during login.
 
-# Setup 
+When this script could be useful:
+- You are preparing a geocaching event and want an attendance list of users who submitted a "Will attend" log.
+- You want a list of users who submitted a "Found it" log for a specific geocache.
 
-1. clone repo
+## Requirements
 
-# Changelog/History
-2026-07-06 - Script works on today's version of the geocaching.com site.
+- Python 3.9+
+- Firefox browser installed
+
+
+## Installation
+
+```bash
+python -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements.txt
+```
+
+## Configuration
+
+The script supports credentials from a local `.env` file:
+
+```env
+GC_USERNAME=your_username
+GC_PASSWORD=your_password
+```
+
+You can also set these values as environment variables.
+
+If either value is missing, the script prompts you interactively.
+
+## Usage
+
+Filter by log type:
+
+```bash
+python get_gc_logs_authors.py --gccode GCXXXXXX --log_type "Will attend"
+```
+
+Use manual reCAPTCHA fallback:
+
+```bash
+python get_gc_logs_authors.py --gccode GCXXXXXX --manual-captcha
+```
+
+Increase manual wait timeout to 5 minutes:
+
+```bash
+python get_gc_logs_authors.py --gccode GCXXXXXX --manual-captcha --captcha-wait-seconds 300
+```
+
+## CLI Options
+
+- `--gccode` (required): Cache GC code, for example `GCXXXXXX`
+- `--output`: Output filename (default: `<GCCODE>.txt`)
+- `--log_type`: Filter by log type
+- `--manual-captcha`: Enable manual reCAPTCHA fallback if login does not complete automatically
+- `--captcha-wait-seconds`: Seconds to wait for manual completion when `--manual-captcha` is enabled (default: `180`)
+
+Supported `--log_type` values:
+
+- Announcement
+- Attended
+- Didn't find it
+- Enable listing
+- Found it
+- Owner maintenance
+- Post reviewer note
+- Temporarily disable listing
+- Update coordinates
+- Will attend
+- Write note
+
+## How Manual reCAPTCHA Fallback Works
+
+When `--manual-captcha` is enabled:
+
+1. The script submits your username and password normally.
+2. If login does not leave the sign-in page within the default wait window, it assumes there may be a challenge (such as reCAPTCHA).
+3. It prompts you in the terminal and waits for you to complete the challenge in the browser.
+4. Once sign-in completes (URL changes away from `/account/signin`), execution continues.
+
+If the timeout expires, Selenium raises a timeout exception.
+
+## Notes and Limitations
+
+- The script currently supports only the English version of geocaching.com.
+- This script depends on current geocaching.com page structure and selectors, which may change.
+- Login challenges are controlled by the website and may not appear consistently.
+- Manual reCAPTCHA mode avoids automated challenge solving and keeps the user in control.
+
+## Output
+
+The output file contains one username per line, deduplicated and sorted case-insensitively.
