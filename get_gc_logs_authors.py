@@ -13,17 +13,17 @@ from selenium.common.exceptions import TimeoutException
 
 
 AVAILABLE_LOG_TYPES = [
-    "Will attend",
-    "Attended",
-    "Announcement",
-    "Found it",
+    'Announcement',
+    'Attended',
     "Didn't find it",
-    "Update coordinates",
-    "Owner maintenance",
-    "Enable listing",
-    "Temporarily disable listing",
-    "Write note",
-    "Post reviewer note",
+    'Enable listing',
+    'Found it',
+    'Owner maintenance',
+    'Post reviewer note',
+    'Temporarily disable listing',
+    'Update coordinates',
+    'Will attend',
+    'Write note',
 ]
 
 
@@ -194,7 +194,6 @@ def build_parser():
     parser.add_argument(
         '--log_type',
         type=str,
-        default='Will attend',
         choices=AVAILABLE_LOG_TYPES,
         help='The log type to filter by',
     )
