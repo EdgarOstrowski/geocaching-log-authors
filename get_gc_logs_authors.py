@@ -19,7 +19,7 @@ AVAILABLE_LOG_TYPES = [
     "Found it",
     "Didn't find it",
     "Update coordinates",
-    "Owner maintenance"
+    "Owner maintenance",
     "Enable listing",
     "Temporarily disable listing",
     "Write note",
@@ -45,7 +45,7 @@ def get_username_and_password():
     return username, password
 
 
-def geocaching_com_login(driver, username, password):
+def geocaching_com_login(driver, username, password, manual_captcha=False, captcha_wait_seconds=180):
     driver.get("https://www.geocaching.com/account/signin")
 
     # Wait for sign-in page to be loaded before interacting with it.
@@ -102,7 +102,19 @@ def geocaching_com_login(driver, username, password):
     password_field.send_keys(Keys.RETURN)
 
     # Successful login should navigate away from the sign-in URL.
-    wait.until(lambda d: "/account/signin" not in d.current_url.lower())
+    try:
+        wait.until(lambda d: "/account/signin" not in d.current_url.lower())
+    except TimeoutException:
+        if not manual_captcha:
+            raise
+
+        print(
+            "Login is still on the sign-in page. If reCAPTCHA is shown, solve it in the browser window."
+        )
+        print(f"Waiting up to {captcha_wait_seconds} seconds for login to complete...")
+
+        captcha_wait = WebDriverWait(driver, captcha_wait_seconds)
+        captcha_wait.until(lambda d: "/account/signin" not in d.current_url.lower())
 
 
 def open_cache_page(driver, gccode):
@@ -186,6 +198,17 @@ def build_parser():
         choices=AVAILABLE_LOG_TYPES,
         help='The log type to filter by',
     )
+    parser.add_argument(
+        '--manual-captcha',
+        action='store_true',
+        help='If login is blocked (for example by reCAPTCHA), wait for manual completion in the browser.',
+    )
+    parser.add_argument(
+        '--captcha-wait-seconds',
+        type=int,
+        default=180,
+        help='How long to wait for manual login completion when --manual-captcha is enabled.',
+    )
     return parser
 
 
@@ -200,7 +223,13 @@ if __name__ == "__main__":
     gccode = args.gccode.strip().upper()
     output_file = args.output if args.output else f"{gccode}.txt"
 
-    geocaching_com_login(driver, username, password)
+    geocaching_com_login(
+        driver,
+        username,
+        password,
+        manual_captcha=args.manual_captcha,
+        captcha_wait_seconds=args.captcha_wait_seconds,
+    )
     open_cache_page(driver, gccode)
 
     # "Write note", "will attend",
