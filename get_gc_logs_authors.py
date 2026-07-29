@@ -10,6 +10,12 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
+from webdriver_manager.chrome import ChromeDriverManager
+from webdriver_manager.edge import EdgeDriverManager
+from webdriver_manager.firefox import GeckoDriverManager
+from selenium.webdriver.chrome.service import Service as ChromeService
+from selenium.webdriver.edge.service import Service as EdgeService
+from selenium.webdriver.firefox.service import Service as FirefoxService
 
 
 AVAILABLE_LOG_TYPES = [
@@ -23,8 +29,7 @@ AVAILABLE_LOG_TYPES = [
     'Temporarily disable listing',
     'Update coordinates',
     'Will attend',
-    'Write note',
-]
+    'Write note']
 
 
 def get_username_and_password():
@@ -187,10 +192,40 @@ def save_usernames_to_file(usernames, filename):
             f.write(username + "\n")
 
 
+def get_webdriver(browser='firefox'):
+    """Initialize and return a webdriver for the specified browser.
+    
+    Automatically downloads and manages the appropriate webdriver using webdriver-manager.
+    """
+    browser = browser.lower()
+    
+    if browser == 'firefox':
+        service = FirefoxService(GeckoDriverManager().install())
+        return webdriver.Firefox(service=service)
+    elif browser == 'chrome':
+        service = ChromeService(ChromeDriverManager().install())
+        return webdriver.Chrome(service=service)
+    elif browser == 'edge':
+        service = EdgeService(EdgeDriverManager().install())
+        return webdriver.Edge(service=service)
+    elif browser == 'safari':
+        # Safari doesn't require a separate driver, it's built-in
+        return webdriver.Safari()
+    else:
+        raise ValueError(f"Unsupported browser: {browser}. Choose from: firefox, chrome, edge, safari")
+
+
 def build_parser():
     parser = argparse.ArgumentParser(description='Download list of geocachers that loga a specific cache.')
     parser.add_argument('--gccode', type=str, required=True, help='The GC code of the cache')
     parser.add_argument('--output', type=str, help='The output file to save the list of geocachers')
+    parser.add_argument(
+        '--browser',
+        type=str,
+        default='firefox',
+        choices=['firefox', 'chrome', 'edge', 'safari'],
+        help='Browser to use (default: firefox)',
+    )
     parser.add_argument(
         '--log_type',
         type=str,
@@ -216,7 +251,7 @@ if __name__ == "__main__":
     parser = build_parser()
     args = parser.parse_args()
 
-    driver = webdriver.Firefox()
+    driver = get_webdriver(args.browser)
 
     username, password = get_username_and_password()
     gccode = args.gccode.strip().upper()
